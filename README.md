@@ -3,7 +3,9 @@
 
 # Hazzy
 
-![Hazzy Logo](./.media/logo.png)
+<p align="center">
+  <img src=".media/logo.png"  width="33%">
+</p>
 
 ## Description
 
