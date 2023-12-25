@@ -8,82 +8,84 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strconv"
 )
 
-// hashChunk computes a simple hash for a byte slice.
+// characters for hashing
+const characters = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+// hashChunk computes a hash for a byte slice.
+// It calculates two indices based on the sum of byte values
+// and uses these indices to pick two characters from a predefined string.
 func hashChunk(chunk []byte) string {
-	var sum uint16 = 0
+	var sum uint16
 	for _, b := range chunk {
 		sum += uint16(b)
 	}
 
-	characters := "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	index1 := sum % 62
+	// Calculate two indices from the sum
+	index1 := sum % 62 // Remainder when divided by 62
 	index2 := (sum / 62) % 62
 
 	return string(characters[index1]) + string(characters[index2])
 }
 
-// compressAndHash computes the compression ratio and hashes the data from an io.Reader.
-func compressAndHash(reader io.Reader) (string, string, int, error) {
+// compressAndHash computes the compression ratio and hashes the data.
+func compressAndHash(reader io.Reader) (hash100KB, hash1KB string, ratio int, err error) {
 	var originalSize, compressedSize int64
-	hash100KB, hash1KB := "", ""
-
 	buf := &bytes.Buffer{}
-	gzipWriter := gzip.NewWriter(buf)
-	chunk := make([]byte, 100*1024) // 100KB chunks
-	isFirstChunk := true
 
+	// Specify the compression level so that the hash is consistent
+	gzipWriter, err := gzip.NewWriterLevel(buf, gzip.BestCompression)
+	if err != nil {
+		return "", "", 0, err
+	}
+
+	processChunk := func(chunk []byte, isFirstChunk bool) error {
+		// Hash the first 100KB or full chunk
+		if isFirstChunk {
+			hash100KB += hashChunk(chunk)
+		}
+
+		// Hash in 1KB segments
+		for i := 0; i < len(chunk); i += 1024 {
+			end := i + 1024
+			if end > len(chunk) {
+				end = len(chunk)
+			}
+			hash1KB += hashChunk(chunk[i:end])
+		}
+		return nil
+	}
+
+	isFirstChunk := true
 	for {
+		chunk := make([]byte, 100*1024) // 100KB chunks
 		bytesRead, err := reader.Read(chunk)
 		if err != nil {
 			if err == io.EOF {
-				// Check if this is the only chunk and it's smaller than 100KB
-				if isFirstChunk && originalSize < 100*1024 {
-					hash100KB = hashChunk(chunk[:bytesRead]) // Hash the entire content
-				}
 				break
 			}
 			return "", "", 0, err
 		}
+
 		originalSize += int64(bytesRead)
-
-		// Specify the compression level here
-		gzipWriter, err := gzip.NewWriterLevel(buf, gzip.BestSpeed)
-		if err != nil {
-			return "", "", 0, err
-		}
-
 		if _, err := gzipWriter.Write(chunk[:bytesRead]); err != nil {
 			return "", "", 0, err
 		}
 
-		// For the first chunk, or a full 100KB chunk, calculate the hash
-		if isFirstChunk || bytesRead == 100*1024 {
-			hash100KB += hashChunk(chunk[:bytesRead])
-			isFirstChunk = false
+		if err := processChunk(chunk[:bytesRead], isFirstChunk); err != nil {
+			return "", "", 0, err
 		}
-
-		for i := 0; i < bytesRead; i += 1024 {
-			end := i + 1024
-			if end > bytesRead {
-				end = bytesRead
-			}
-			hash1KB += hashChunk(chunk[i:end])
-		}
+		isFirstChunk = false
 	}
 
+	// Close the gzip writer and calculate compression
 	if err := gzipWriter.Close(); err != nil {
 		return "", "", 0, err
 	}
 	compressedSize = int64(buf.Len())
-
-	// Calculate the compression ratio as an integer between 0 and 1000
-	fmt.Println("originalSize", originalSize)
-	fmt.Println("compressedSize", compressedSize)
-	compressionReductionPercentage := int((1 - float64(compressedSize)/float64(originalSize)) * 1000)
-	return hash100KB, hash1KB, compressionReductionPercentage, nil
+	ratio = int((1 - float64(compressedSize)/float64(originalSize)) * 1000)
+	return
 }
 
 // GenerateHashFromFile generates a hash from a file path.
@@ -99,7 +101,7 @@ func GenerateHashFromFile(filePath string) (string, error) {
 		return "", err
 	}
 
-	return strconv.Itoa(ratio) + "." + hash100KB + "." + hash1KB, nil
+	return fmt.Sprintf("%d.%s.%s", ratio, hash100KB, hash1KB), nil
 }
 
 // GenerateHashFromBytes generates a hash from a byte slice.
@@ -110,5 +112,5 @@ func GenerateHashFromBytes(data []byte) (string, error) {
 		return "", err
 	}
 
-	return strconv.Itoa(ratio) + "." + hash100KB + "." + hash1KB, nil
+	return fmt.Sprintf("%d.%s.%s", ratio, hash100KB, hash1KB), nil
 }
