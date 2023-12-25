@@ -30,6 +30,16 @@ Hazzy is a Go package that offers a unique approach to file hashing, particularl
 - **Reduced False Positives**: By providing detailed chunk-based hashes, Hazzy reduces the likelihood of false positives that can occur with Bloom tree implementations in large datasets.
 - **Versatility in File Size**: Effective for both large and small files, Hazzy ensures accurate hashing and comparison regardless of file size.
 
+## Example
+
+This image will give this hash
+
+<img src="./testData/smol.jpeg"  width="33%">
+
+`4.Is.33PidPezAaudnCIjEcl0Nd5jjeOaOZL2iVhsDZMutapsNSYqe3LW2EiikBfVxYB1sWAXwmKqr0BxqAzSjbDO1Uy9krHUYjnridr5xajV72leTJLp6uFNZF1swoVkDgsiFyIZODlRgdz979lhLJU7jVmii8878wJZwgCPEBHs715C5FVlFJHjK3OHuMhbqueAPVSzBGmoUfj21T0FOb4qjfp0qn7OhDeoJ2WAM568KfhXqtZPgUvvHGHDf5n1iGz00Qvukiv8kxB9SYIFcuHILjxJ6L7SK4eNDhvjo0LR7ETyPUspX25aRiVEwhpdh2weRYj6RYkilaoFORCo4aS7QU3xLLCeP8di35LbVlxZw5HLDlKzwCGt6igYjIihoifSxwlHYOYS4Q9ujti907BCiPQlKKm8HqDFC9vqudGZMyeR14ybCcpO6c3Td6FjnTHXRILCvkCRkqsZYKeDq2mLHUUTZ2M6ORj8odKrsjSefIEjhrddnSsY7ODfgWmbc3aloYXZtnQezwDhcuEUbUezKbPYhfRglZj29MOYWriHS0Y4HnAAO9jkhrWQE9OylHf3XWuRHcjmn6Ilv605Jb1Uwer4SMWyWE9S1HD0q2qKor6HmmSywC
+`
+
+
 ## Installation
 
 To install Hazzy, use the following go get command:
